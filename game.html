@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>勇者の塔</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d1a;--bg2:#13131f;--panel:#1a1a2e;--bdr:#2a2a4a;
+  --txt:#e8e8f0;--dim:#7070a0;--gold:#f0c040;
+  --red:#e05050;--grn:#40c080;
+  --fire:#ff6030;--water:#3090ff;--thunder:#f0d020;
+  --nature:#40c040;--wind:#80e0e0;--earth:#c08040;
+}
+html,body{width:100%;min-height:100%;background:var(--bg);color:var(--txt);
+  font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;font-size:15px;overflow-x:hidden}
+#app{max-width:780px;margin:0 auto;padding:12px 10px 60px;display:flex;flex-direction:column;gap:12px}
+.pnl{background:var(--panel);border:1px solid var(--bdr);border-radius:10px;padding:12px 16px}
+
+/* ── ヘッダー ── */
+#hdr{display:flex;align-items:center;justify-content:space-between}
+#floor-lbl{font-size:22px;font-weight:700;color:var(--gold)}
+#turn-lbl{font-size:12px;color:var(--dim)}
+#diff-bdg{font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid currentColor}
+#diff-bdg.easy{color:var(--grn)}#diff-bdg.normal{color:var(--gold)}#diff-bdg.hard{color:var(--red)}
+
+/* ── HP ── */
+.hp-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.hp-nm{font-size:12px;width:75px;flex-shrink:0}
+.hp-wr{flex:1;height:13px;background:#111;border-radius:7px;overflow:hidden;border:1px solid var(--bdr)}
+.hp-fl{height:100%;border-radius:7px;transition:width .4s,background .4s}
+.hp-fl.p{background:var(--grn)}.hp-fl.e{background:var(--red)}
+.hp-fl.low{background:#e08020}.hp-fl.crit{background:var(--red);animation:pulse .6s infinite alternate}
+@keyframes pulse{to{opacity:.4}}
+.hp-val{font-size:11px;color:var(--dim);width:95px;text-align:right;flex-shrink:0}
+.stat-row{font-size:15px;letter-spacing:3px;min-height:22px;padding-left:83px;color:var(--txt)}
+
+/* ── 属性バッジ ── */
+.ebdg{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:10px;border:1px solid currentColor}
+.ef{color:var(--fire)}.ew{color:var(--water)}.et{color:var(--thunder)}
+.en{color:var(--nature)}.ewi{color:var(--wind)}.ee{color:var(--earth)}.eo{color:var(--dim)}
+
+/* ── 敵パネル ── */
+#enm-wrap{display:flex;align-items:center;gap:14px}
+#enm-spr{font-size:54px;line-height:1;flex-shrink:0;transition:transform .15s,filter .15s}
+#enm-spr.hit{transform:scale(1.3);filter:drop-shadow(0 0 16px #ff6030)}
+#enm-inf{flex:1}
+#enm-nm{font-size:17px;font-weight:700;margin-bottom:4px}
+#enm-sub{font-size:11px;color:var(--dim);margin-top:3px}
+#enm-sr{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+#enm-hp-sec{min-width:130px;display:flex;flex-direction:column;gap:3px}
+
+/* ── カードエリア ── */
+#hand-ttl{font-size:11px;color:var(--dim);letter-spacing:.2em;text-align:center;margin-bottom:10px}
+#hand-cards{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.card{width:175px;min-height:195px;background:var(--bg2);border:2px solid var(--bdr);
+  border-radius:12px;padding:12px 10px;display:flex;flex-direction:column;gap:5px;
+  cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s,border-color .15s;
+  user-select:none}
+.card:hover:not(.dis){transform:translateY(-7px) scale(1.03);box-shadow:0 10px 28px rgba(0,0,0,.7)}
+.card:active:not(.dis){transform:translateY(-2px)}
+.card.sel{border-color:var(--gold)!important;box-shadow:0 0 20px rgba(240,192,64,.45)}
+.card.dis{opacity:.35;cursor:default;pointer-events:none}
+.card.common{border-color:#383858}.card.uncommon{border-color:#285038}
+.card.rare{border-color:#283870}.card.epic{border-color:#582878}
+.card.legendary{border-color:#7a5000;box-shadow:0 0 14px rgba(240,192,64,.2)}
+.card.legendary::before{content:'';position:absolute;inset:0;border-radius:12px;
+  background:linear-gradient(135deg,rgba(240,192,64,.07),transparent 55%);pointer-events:none}
+.c-rar{font-size:9px;letter-spacing:.15em;position:absolute;top:7px;right:8px}
+.card.common .c-rar{color:#505070}.card.uncommon .c-rar{color:#387853}
+.card.rare .c-rar{color:#4060a0}.card.epic .c-rar{color:#804090}
+.card.legendary .c-rar{color:var(--gold)}
+.c-ico{font-size:34px;text-align:center;line-height:1}
+.c-nm{font-size:12px;font-weight:700;text-align:center}
+.c-meta{font-size:10px;color:var(--dim);text-align:center}
+.c-pow{font-size:22px;font-weight:700;text-align:center;color:var(--gold)}
+.c-plbl{font-size:9px;color:var(--dim);text-align:center;margin-top:-4px}
+.c-desc{font-size:9px;color:var(--dim);border-top:1px solid var(--bdr);padding-top:5px;margin-top:auto;line-height:1.5}
+
+/* ── バトルステージ ── */
+#bstage{display:flex;flex-direction:column;gap:10px}
+#rev-row{display:none;justify-content:space-around;align-items:center;gap:8px}
+#rev-row.show{display:flex}
+.rc{flex:1;max-width:200px;padding:10px;border-radius:9px;border:2px solid var(--bdr);
+  background:var(--bg2);text-align:center}
+.rc-lbl{font-size:9px;color:var(--dim);margin-bottom:3px}
+.rc-ico{font-size:28px}.rc-nm{font-size:11px;font-weight:700;margin-top:3px}
+.rc-pw{font-size:18px;font-weight:700;color:var(--gold)}
+.vs{font-size:18px;font-weight:700;color:var(--dim);flex-shrink:0}
+#rxn-bnr{display:none;padding:10px 16px;border-radius:8px;text-align:center;
+  font-weight:700;font-size:15px;letter-spacing:.1em;animation:pop .35s cubic-bezier(.34,1.56,.64,1)}
+#rxn-bnr.show{display:block}
+@keyframes pop{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
+#dmg-disp{text-align:center;font-size:26px;font-weight:700;display:none}
+#dmg-disp.show{display:block;animation:dmgIn .4s ease}
+@keyframes dmgIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+#blog{font-size:12px;color:var(--dim);line-height:2;border-top:1px solid var(--bdr);
+  padding-top:8px;max-height:140px;overflow-y:auto}
+#blog p{margin:0}
+#blog p.hi{color:var(--txt)}#blog p.rxn{color:var(--gold)}
+#blog p.bad{color:var(--red)}#blog p.ok{color:var(--grn)}
+
+/* ── 次ターンボタン ── */
+#next-btn{display:none;width:100%;padding:14px;background:transparent;
+  border:2px solid var(--gold);color:var(--gold);font-size:15px;font-weight:700;
+  letter-spacing:.2em;border-radius:8px;cursor:pointer;transition:background .2s,color .2s;font-family:inherit}
+#next-btn.show{display:block}
+#next-btn:hover{background:var(--gold);color:#000}
+
+/* ── スタート画面 ── */
+#start{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:24px;z-index:100;padding:24px}
+#start h1{font-size:clamp(22px,5vw,36px);font-weight:700;letter-spacing:.3em;color:var(--gold);text-align:center}
+#start .sub{font-size:13px;color:var(--dim);text-align:center;line-height:2.2}
+.dbtns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.dbtn{padding:12px 28px;font-size:14px;font-weight:700;letter-spacing:.2em;border-radius:8px;
+  border:2px solid;background:transparent;cursor:pointer;font-family:inherit;transition:background .2s,color .2s}
+.dbtn.easy{color:var(--grn);border-color:var(--grn)}.dbtn.easy:hover{background:var(--grn);color:#000}
+.dbtn.normal{color:var(--gold);border-color:var(--gold)}.dbtn.normal:hover{background:var(--gold);color:#000}
+.dbtn.hard{color:var(--red);border-color:var(--red)}.dbtn.hard:hover{background:var(--red);color:#fff}
+
+/* ── オーバーレイ ── */
+#ovrl{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;z-index:200;padding:24px}
+#ovrl.show{display:flex}
+#ov-ttl{font-size:clamp(26px,6vw,44px);font-weight:700;letter-spacing:.4em;text-align:center}
+#ov-ttl.go{color:var(--red)}#ov-ttl.clr{color:var(--gold)}
+#ov-msg{font-size:14px;color:var(--dim);letter-spacing:.1em;line-height:2.2;text-align:center;white-space:pre-wrap}
+#ov-btn{padding:12px 36px;background:transparent;border:2px solid #888;color:#ccc;
+  font-family:inherit;font-size:14px;letter-spacing:.3em;cursor:pointer;border-radius:8px;transition:border-color .2s,color .2s}
+#ov-btn:hover{border-color:#fff;color:#fff}
+
+/* ── フラッシュ ── */
+#flash{position:fixed;inset:0;pointer-events:none;z-index:150;opacity:0;transition:opacity .07s}
+#flash.show{opacity:1}
+
+@media(max-width:520px){
+  .card{width:140px;min-height:175px;padding:9px 8px}
+  .c-ico{font-size:26px}.c-pow{font-size:18px}
+  #hand-cards{gap:5px}
+}
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<!-- スタート画面 -->
+<div id="start">
+  <h1>⚔️ 勇者の塔 ⚔️</h1>
+  <p class="sub">全5階層のダンジョンを攻略せよ。<br>
+    毎ターン3枚ランダム配布。1枚選んで敵と同時開示。<br>
+    <strong style="color:var(--gold)">属性の組み合わせ</strong>が勝敗を大きく左右する。<br>
+    🔥火 💧水 ⚡雷 🌿草 🌀風 🪨岩</p>
+  <div class="dbtns">
+    <button class="dbtn easy"   onclick="startGame('easy')">EASY</button>
+    <button class="dbtn normal" onclick="startGame('normal')">NORMAL</button>
+    <button class="dbtn hard"   onclick="startGame('hard')">HARD</button>
+  </div>
+</div>
+
+<!-- ゲームオーバー/クリア -->
+<div id="ovrl">
+  <div id="ov-ttl"></div>
+  <div id="ov-msg"></div>
+  <button id="ov-btn" onclick="location.reload()">もう一度挑戦</button>
+</div>
+
+<!-- メイン -->
+<div id="app">
+  <div class="pnl" id="hdr">
+    <div id="floor-lbl">🗼 1F</div>
+    <div id="turn-lbl">ターン <span id="turn-num">1</span></div>
+    <div id="diff-bdg" class="normal">NORMAL</div>
+  </div>
+  <div class="pnl">
+    <div class="hp-row">
+      <div class="hp-nm">⚔️ 勇者</div>
+      <div class="hp-wr"><div class="hp-fl p" id="php"></div></div>
+      <div class="hp-val" id="phv"></div>
+    </div>
+    <div class="stat-row" id="psr"></div>
+  </div>
+  <div class="pnl">
+    <div id="enm-wrap">
+      <div id="enm-spr">👹</div>
+      <div id="enm-inf">
+        <div id="enm-nm">スライム</div>
+        <div style="margin-top:4px"><span id="enm-elem"></span></div>
+        <div id="enm-sr"></div>
+        <div id="enm-sub"></div>
+      </div>
+      <div id="enm-hp-sec">
+        <div class="hp-row" style="padding:0">
+          <div class="hp-nm" style="font-size:11px;width:auto;margin-right:6px">👹HP</div>
+          <div class="hp-wr" style="min-width:80px"><div class="hp-fl e" id="ehp"></div></div>
+        </div>
+        <div class="hp-val" id="ehv" style="text-align:center;width:auto"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pnl">
+    <div id="hand-ttl">━━ カードを1枚選べ ━━</div>
+    <div id="hand-cards"></div>
+  </div>
+  <div class="pnl" id="bstage">
+    <div id="rev-row">
+      <div class="rc" id="rc-p">
+        <div class="rc-lbl">あなたのカード</div>
+        <div class="rc-ico" id="rp-ico"></div>
+        <div class="rc-nm"  id="rp-nm"></div>
+        <div class="rc-pw"  id="rp-pw"></div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="rc" id="rc-e">
+        <div class="rc-lbl">敵のカード</div>
+        <div class="rc-ico" id="re-ico"></div>
+        <div class="rc-nm"  id="re-nm"></div>
+        <div class="rc-pw"  id="re-pw"></div>
+      </div>
+    </div>
+    <div id="rxn-bnr"></div>
+    <div id="dmg-disp"></div>
+    <div id="blog"><p class="hi">冒険を始めよう！カードを選んでバトル開始！</p></div>
+  </div>
+  <button id="next-btn">次のターンへ ▶</button>
+</div>
+
+<script>
+</script>
+</body>
+</html>

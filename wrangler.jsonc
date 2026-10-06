@@ -1,0 +1,11 @@
+{
+  // Cloudflare Workers 設定
+  "name": "yusha-no-to",
+  "compatibility_date": "2025-01-01",
+
+  // 静的ファイルを配信する Assets 設定
+  "assets": {
+    "directory": "./",
+    "not_found_handling": "single-page-application"
+  }
+}
